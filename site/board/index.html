@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src https://*.ytimg.com; connect-src 'self'; base-uri 'none'; form-action 'none'">
+<title>לוח הערוצים</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: a site-office board. Hairline rules instead of cards, mono numerals, and one colour per channel. */
+:root {
+  --paper: #f2f2ee;
+  --sheet: #fbfbf8;
+  --ink: #181b1d;
+  --muted: #5c6266;
+  --rule: #d5d6cf;
+  --link: #0d5f7a;
+  --warn-bg: #fbe7dc;
+  --warn-ink: #8f2c0b;
+  --note-bg: #f6edcf;
+  --note-ink: #5e4a08;
+  --ch-0: #b4520a;
+  --ch-1: #0f6f8c;
+  --ch-2: #5a6a1a;
+  --ch-3: #8a3a6b;
+  --ch-4: #3f51a3;
+  --ch-5: #7a5a2b;
+  --font-body: "IBM Plex Sans Hebrew", "Segoe UI", Arial, sans-serif;
+  --font-num: "IBM Plex Mono", Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #15181a;
+    --sheet: #1c2023;
+    --ink: #e9eae5;
+    --muted: #a0a6a8;
+    --rule: #33393c;
+    --link: #6cc3df;
+    --warn-bg: #3f1f12;
+    --warn-ink: #ffb896;
+    --note-bg: #352c10;
+    --note-ink: #ecd98f;
+    --ch-0: #ef9347;
+    --ch-1: #58bcd9;
+    --ch-2: #b3c65c;
+    --ch-3: #dc8fbd;
+    --ch-4: #9aa9ec;
+    --ch-5: #cfaa6e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #15181a;
+  --sheet: #1c2023;
+  --ink: #e9eae5;
+  --muted: #a0a6a8;
+  --rule: #33393c;
+  --link: #6cc3df;
+  --warn-bg: #3f1f12;
+  --warn-ink: #ffb896;
+  --note-bg: #352c10;
+  --note-ink: #ecd98f;
+  --ch-0: #ef9347;
+  --ch-1: #58bcd9;
+  --ch-2: #b3c65c;
+  --ch-3: #dc8fbd;
+  --ch-4: #9aa9ec;
+  --ch-5: #cfaa6e;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 400 16px/1.5 var(--font-body); }
+a { color: var(--link); text-underline-offset: 2px; }
+a:focus-visible, summary:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+h1, h2, h3, p { margin: 0; }
+.wrap { max-width: 1240px; margin-inline: auto; padding: 20px 16px 40px; display: grid; gap: 28px; }
+.n { font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.small { font-size: 14px; }
+.none { color: var(--muted); opacity: .65; }
+
+/* Top line */
+.top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 24px; }
+h1 { font-size: 22px; font-weight: 700; line-height: 1.25; }
+.updated { font-size: 17px; font-weight: 600; }
+.updated .sub { display: block; font-size: 14px; font-weight: 400; color: var(--muted); }
+.statuslink { font-weight: 600; }
+.notice { background: var(--note-bg); color: var(--note-ink); padding: 10px 14px; border-inline-start: 4px solid currentColor; font-weight: 600; }
+.notice .sub { display: block; font-weight: 400; font-size: 14px; }
+.alerts { display: grid; gap: 8px; }
+.alert { background: var(--warn-bg); color: var(--warn-ink); padding: 10px 14px; border-inline-start: 4px solid currentColor; }
+.alert strong { font-weight: 700; }
+
+/* Sections */
+h2 { font-size: 18px; font-weight: 700; line-height: 1.3; padding-block-end: 6px; border-block-end: 2px solid var(--ink); }
+.foot { margin-block-start: 10px; font-size: 14px; color: var(--muted); display: grid; gap: 4px; }
+
+/* One column per channel, side by side. Never a sum across channels. */
+.channels { display: grid; gap: 28px 32px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr)); }
+.ch-name { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; padding-block-end: 8px; border-block-end: 3px solid var(--ch); }
+.ch-name h3 { font-size: 19px; font-weight: 700; }
+.ch-name a { font-size: 14px; }
+/* Two groups, because the two sets of numbers are from different moments: live now, and days behind. */
+.tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding-block: 12px 6px; }
+.tgroup + .tgroup { border-inline-start: 1px solid var(--rule); padding-inline-start: 12px; }
+.tgroup .cap { font-size: 13px; font-weight: 600; color: var(--muted); padding-block-end: 4px; }
+.tgroup .row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.tile .v { font-family: var(--font-num); font-weight: 600; font-size: 28px; line-height: 1.15; }
+.tile .l { font-size: 14px; color: var(--muted); line-height: 1.3; }
+.tile.first .v { color: var(--ch); }
+@media (max-width: 480px) { .tile .v { font-size: 22px; } .tile .l { font-size: 13px; } }
+.ch-warn { margin-block-start: 8px; background: var(--note-bg); color: var(--note-ink); padding: 6px 10px; font-size: 14px; }
+
+/* Upcoming: days flow into two columns on a wide screen. Preparation sits under it as its own strip. */
+@media (min-width: 960px) {
+  .days { column-count: 2; column-gap: 32px; }
+  .preps { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 32px; }
+}
+.day { break-inside: avoid; }
+.day { padding-block: 10px 2px; }
+.day-name { font-weight: 700; font-size: 15px; }
+.day-name .rel { color: var(--muted); font-weight: 400; }
+.slot { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 2px 10px; padding-block: 8px; border-block-end: 1px solid var(--rule); align-items: start; }
+.day .slot:last-child { border-block-end: 0; }
+.slot .time { font-family: var(--font-num); font-weight: 600; font-size: 15px; line-height: 1.5; }
+.slot .title { font-weight: 500; line-height: 1.35; display: block; }
+.slot img { display: block; width: 72px; height: auto; aspect-ratio: 16 / 9; object-fit: cover; background: var(--rule); }
+.meta { font-size: 14px; color: var(--muted); }
+.dot { display: inline-block; width: 9px; height: 9px; background: var(--ch); margin-inline-end: 5px; }
+.tag { font-size: 13px; padding: 0 6px; border: 1px solid var(--rule); color: var(--muted); white-space: nowrap; }
+details.rest > summary, details.more > summary { cursor: pointer; color: var(--link); }
+details.rest > summary { padding-block: 10px; font-weight: 600; min-height: 44px; }
+.prep { padding-block: 10px; border-block-end: 1px solid var(--rule); }
+.prep .title { font-weight: 500; line-height: 1.35; display: block; }
+.prep .stage { display: inline-block; margin-block-end: 2px; font-size: 13px; font-weight: 600; padding: 0 6px; background: var(--note-bg); color: var(--note-ink); }
+
+/* What went up */
+.group-title { font-size: 15px; font-weight: 700; padding-block: 14px 2px; display: flex; gap: 8px; align-items: baseline; }
+.video { padding-block: 12px; border-block-end: 1px solid var(--rule); display: grid; gap: 8px; }
+.video:last-child { border-block-end: 0; }
+.head { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 10px; align-items: start; }
+.head.bare { grid-template-columns: minmax(0, 1fr); }
+.head img, .nothumb { display: block; width: 112px; height: auto; aspect-ratio: 16 / 9; object-fit: cover; background: var(--rule); }
+.nothumb { display: grid; place-items: center; font-size: 12px; line-height: 1.2; color: var(--muted); text-align: center; padding: 4px; }
+.title { color: inherit; text-decoration: none; }
+.title:hover { text-decoration: underline; }
+.head .title { font-weight: 500; line-height: 1.35; }
+.nums { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.num .v { font-family: var(--font-num); font-weight: 600; font-size: 16px; line-height: 1.3; }
+.num .l { font-size: 12.5px; line-height: 1.2; color: var(--muted); }
+.num.live .v { color: var(--ch); }
+.ch-through { font-size: 14px; color: var(--muted); }
+.few { display: inline-block; font-size: 12px; line-height: 1.3; color: var(--note-ink); background: var(--note-bg); padding: 0 4px; margin-block-start: 2px; }
+.nums.labels { padding-block: 8px 6px; border-block-end: 1px solid var(--rule); }
+details.more { font-size: 14px; }
+details.more > summary { display: inline-block; min-height: 24px; }
+details.more dl { margin: 4px 0 0; display: flex; flex-wrap: wrap; gap: 2px 18px; color: var(--muted); }
+details.more dl div { display: flex; gap: 6px; }
+details.more dd { margin: 0; color: var(--ink); }
+
+/* Footer: the terms' links and privacy sentence */
+footer { border-block-start: 1px solid var(--rule); padding-block-start: 12px; font-size: 14px; color: var(--muted); display: grid; gap: 6px; max-width: 75ch; }
+footer nav { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+#loading { padding: 40px 16px; text-align: center; }
+</style>
+</head>
+<body>
+<div id="app" class="wrap"><p id="loading">טוען…</p></div>
+<script>
+'use strict';
+const STATUS_PAGE = 'https://claude.ai/artifact/KkWyxr5fmKXDjU3SMCkCYU';
+const TZ = 'Asia/Jerusalem';
+const STALE_HOURS = 4; // The refresh runs about once an hour and GitHub can be late, so 4 hours means runs were missed.
+const FEW_VIEWS = 100;
+
+// Values from the data file only ever go in as text, never as HTML.
+function h(tag, attrs, ...children) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v === null || v === undefined || v === false) continue;
+    if (k === 'class') el.className = v;
+    else if (k === 'style') el.style.cssText = v;
+    else el.setAttribute(k, v);
+  }
+  for (const c of children.flat(Infinity)) {
+    if (c === null || c === undefined || c === false) continue;
+    el.append(c.nodeType ? c : document.createTextNode(String(c)));
+  }
+  return el;
+}
+const bdi = (text) => h('bdi', {}, text);
+const ltr = (text, cls) => h('span', {dir: 'ltr', class: cls}, text);
+
+const fmt = (opts) => new Intl.DateTimeFormat('he-IL', {timeZone: TZ, ...opts});
+const partsOf = (iso) => {
+  // A date with no hour stays that date, in any time zone.
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+    const [y, m, d] = iso.split('-').map(Number);
+    return {y, m, d};
+  }
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-GB', {timeZone: TZ, year: 'numeric', month: 'numeric', day: 'numeric'}).formatToParts(new Date(iso)).map((x) => [x.type, x.value]));
+  return {y: +p.year, m: +p.month, d: +p.day};
+};
+const shortDate = (iso) => { const p = partsOf(iso); return `${p.d}.${p.m}`; };
+const timeOf = (iso) => fmt({hour: '2-digit', minute: '2-digit', hourCycle: 'h23'}).format(new Date(iso));
+const weekday = (iso) => fmt({weekday: 'long'}).format(new Date(iso));
+const dayKey = (iso) => { const p = partsOf(iso); return `${p.y}-${p.m}-${p.d}`; };
+const stamp = (iso) => `${weekday(iso)} ${shortDate(iso)}, ${timeOf(iso)}`;
+
+const count = (v) => (v === null || v === undefined ? null : Math.round(v).toLocaleString('en-US'));
+const one = (v) => (v === null || v === undefined ? null : v.toFixed(1));
+const pct = (v) => (v === null || v === undefined ? null : `${v.toFixed(1)}%`);
+const clock = (s) => (s === null || s === undefined ? null : `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`);
+const orDash = (text, cls) => (text === null ? h('span', {class: `${cls || ''} none`}, '—') : ltr(text, cls));
+
+const channelVars = (i) => `--ch: var(--ch-${i % 6})`;
+const ytChannel = (c) => `https://www.youtube.com/channel/${c.id}`;
+const ytVideo = (v) => (v.kind === 'short' ? `https://youtube.com/shorts/${v.id}` : `https://youtu.be/${v.id}`);
+
+function isStale(data) {
+  return Date.now() - Date.parse(data.generatedAt) > STALE_HOURS * 3600000;
+}
+function ago(iso) {
+  const minutes = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60000));
+  if (minutes < 1) return 'לפני פחות מדקה';
+  if (minutes === 1) return 'לפני דקה';
+  if (minutes < 60) return `לפני ${minutes} דקות`;
+  const hours = Math.round(minutes / 60);
+  if (hours === 1) return 'לפני שעה';
+  if (hours === 2) return 'לפני שעתיים';
+  return `לפני ${hours} שעות`;
+}
+
+function topBlock(data) {
+  const updated = h('div', {class: 'updated'}, `עודכן ${ago(data.generatedAt)}`,
+    h('span', {class: 'sub'}, `${stamp(data.generatedAt)}. מתעדכן בערך כל שעה.`));
+  return h('div', {class: 'top'},
+    h('div', {}, h('h1', {}, 'לוח הערוצים'), h('a', {class: 'statuslink small', href: STATUS_PAGE}, 'מה מחכה לך: דף הסטטוס')),
+    updated);
+}
+
+function alertsBlock(data) {
+  const items = [];
+  if (isStale(data)) {
+    items.push(h('div', {class: 'alert', role: 'alert'}, h('strong', {}, `הדף לא התעדכן כבר יותר מ־${STALE_HOURS} שעות. `), 'כל המספרים כאן ישנים. כדאי לכתוב על זה בצ\'אט המנהל.'));
+  }
+  for (const c of data.channels) {
+    const old = c.lastOk && Date.now() - Date.parse(c.lastOk) > STALE_HOURS * 3600000;
+    if (c.status === 'ok' && !old) continue;
+    items.push(h('div', {class: 'alert', role: 'alert'},
+      h('strong', {}, bdi(c.name), ' לא התעדכן. '),
+      c.lastOk ? `המספרים האחרונים: ${stamp(c.lastOk)}. ` : 'עדיין אין ממנו מספרים. ',
+      c.error || ''));
+  }
+  return items.length ? h('div', {class: 'alerts'}, items) : null;
+}
+
+function channelTiles(data) {
+  const blocks = data.channels.map((c, i) => h('div', {style: channelVars(i)},
+    h('div', {class: 'ch-name'},
+      h('h3', {}, bdi(c.name)),
+      h('a', {href: ytChannel(c)}, ltr(c.handle || 'YouTube'))),
+    h('div', {class: 'tiles'},
+      h('div', {class: 'tgroup'},
+        h('div', {class: 'cap'}, 'עכשיו'),
+        h('div', {class: 'row'},
+          tile('סכום צפיות', count(c.viewsNow), true),
+          tile('מנויים', count(c.subscribers)))),
+      h('div', {class: 'tgroup'},
+        h('div', {class: 'cap'}, c.statsThrough ? `נכון ל־${shortDate(c.statsThrough)}` : 'עוד לא הגיע מיוטיוב'),
+        h('div', {class: 'row'},
+          tile('צפיות פעילות', count(c.engagedViews)),
+          tile('שעות צפייה', one(c.hours))))),
+    (c.warnings || []).map((w) => h('p', {class: 'ch-warn'}, w))));
+  const note = h('div', {class: 'foot'},
+      h('p', {}, h('strong', {}, 'צפיות: '), 'כל פעם שמישהו התחיל לנגן. זה המספר שמופיע ביוטיוב מתחת לסרטון. בראש כל ערוץ זה סכום של כל הסרטונים שלו, חישוב שלנו.'),
+      h('p', {}, h('strong', {}, 'צפיות פעילות: '), 'רק מי שנשאר אחרי השניות הראשונות, ולכן הן תמיד פחות. זה המספר שמעיד על צופים אמיתיים.'),
+      h('p', {}, 'יוטיוב מוסרת צפיות פעילות, שעות ואחוזים באיחור של כ־3 ימים, ולכן ב־Studio הם יכולים להיות גבוהים יותר באותו רגע.'));
+  return h('section', {}, h('div', {class: 'channels'}, blocks), note);
+}
+function tile(label, value, first) {
+  return h('div', {class: `tile${first ? ' first' : ''}`},
+    h('div', {class: 'v'}, value === null ? h('span', {class: 'none'}, '—') : ltr(value)),
+    h('div', {class: 'l'}, label));
+}
+
+function upcomingItems(data) {
+  const now = Date.now();
+  const items = [];
+  data.channels.forEach((c, i) => {
+    for (const v of c.scheduled || []) {
+      if (Date.parse(v.at) > now) items.push({...v, channelName: c.name, channelIndex: i});
+    }
+  });
+  return items.sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
+}
+
+function slot(v) {
+  return h('div', {class: 'slot', style: channelVars(v.channelIndex)},
+    h('div', {class: 'time'}, timeOf(v.at)),
+    h('div', {},
+      h('a', {class: 'title', href: ytVideo(v)}, bdi(v.title)),
+      h('div', {class: 'meta'}, h('span', {class: 'dot'}), bdi(v.channelName), ` · ${v.kind === 'short' ? 'שורט' : 'פרק'}`)),
+    v.thumb ? thumbImg(v) : h('span', {}));
+}
+function thumbImg(v) {
+  const img = h('img', {src: v.thumb, alt: '', loading: 'lazy', width: '320', height: '180'});
+  img.addEventListener('error', () => { img.style.visibility = 'hidden'; });
+  return img;
+}
+
+function dayBlocks(items, todayKey, tomorrowKey) {
+  const days = [];
+  for (const v of items) {
+    const key = dayKey(v.at);
+    if (!days.length || days.at(-1).key !== key) days.push({key, iso: v.at, items: []});
+    days.at(-1).items.push(v);
+  }
+  return days.map((d) => h('div', {class: 'day'},
+    h('div', {class: 'day-name'}, `${weekday(d.iso)} ${shortDate(d.iso)}`,
+      d.key === todayKey ? h('span', {class: 'rel'}, ' · היום') : null,
+      d.key === tomorrowKey ? h('span', {class: 'rel'}, ' · מחר') : null),
+    d.items.map(slot)));
+}
+
+function upcomingBlock(data) {
+  const items = upcomingItems(data);
+  const nowIso = new Date().toISOString();
+  const todayKey = dayKey(nowIso);
+  const tomorrowKey = dayKey(new Date(Date.now() + 86400000).toISOString());
+  const cutoff = Date.now() + 7 * 86400000;
+  // Seven days ahead, and never cut a day in half.
+  const lastDay = dayKey(new Date(cutoff).toISOString());
+  const isSoon = (v) => Date.parse(v.at) <= cutoff || dayKey(v.at) === lastDay;
+  const soon = items.filter(isSoon);
+  const later = items.filter((v) => !isSoon(v));
+  return h('section', {},
+    h('h2', {}, 'עולה בקרוב'),
+    items.length === 0 ? h('p', {class: 'muted', style: 'padding-block:10px'}, 'אין כרגע סרטונים מתוזמנים.') : null,
+    h('div', {class: 'days'}, dayBlocks(soon, todayKey, tomorrowKey)),
+    later.length ? h('details', {class: 'rest'},
+      h('summary', {}, `עוד ${later.length} עד ${shortDate(later.at(-1).at)}`),
+      h('div', {class: 'days'}, dayBlocks(later, todayKey, tomorrowKey))) : null,
+    h('p', {class: 'foot'}, 'כל השעות בשעון ישראל.'));
+}
+
+function prepBlock(data) {
+  const items = data.pipeline || [];
+  return h('section', {},
+    h('h2', {}, 'בהכנה'),
+    items.length === 0 ? h('p', {class: 'muted', style: 'padding-block:10px'}, 'אין כרגע פרקים בהכנה.') : null,
+    h('div', {class: 'preps'}, items.map((p) => h('div', {class: 'prep'},
+      h('span', {class: 'stage'}, p.stage),
+      h('span', {class: 'title'}, bdi(p.title)),
+      h('div', {class: 'meta'}, bdi(p.channel), p.note ? ` · ${p.note}` : ''),
+      p.more ? h('details', {class: 'more'}, h('summary', {}, 'פרטים נוספים'), h('p', {class: 'muted'}, bdi(p.more))) : null))),
+    h('p', {class: 'foot'}, 'מהרישום שלנו, לא מיוטיוב.'));
+}
+
+const NUM_LABELS = (mark) => ['צפיות', 'צפיות פעילות', 'שעות', 'אחוז נצפה', `אחוז הקלקות${mark}`];
+
+function numCell(label, value, extra, live) {
+  return h('div', {class: `num${live ? ' live' : ''}`},
+    h('div', {class: 'v'}, orDash(value)),
+    label ? h('div', {class: 'l'}, label) : null,
+    extra || null);
+}
+function numsFor(v, labels) {
+  const few = v.ctr !== null && v.ctr !== undefined && v.views !== null && v.views !== undefined && v.views < FEW_VIEWS
+    ? h('span', {class: 'few'}, 'מעט נתונים') : null;
+  const values = [count(v.views), count(v.engagedViews), one(v.hours), pct(v.avgViewPct)];
+  // Most Shorts are seen in the feed with no thumbnail to click, so a click-through figure means nothing for them.
+  if (v.kind !== 'short') values.push(pct(v.ctr));
+  return h('div', {class: 'nums'}, values.map((val, i) => numCell(labels ? labels[i] : null, val, i === 4 ? few : null, i === 0)));
+}
+function moreFor(v) {
+  const rows = [
+    ['חשיפות*', v.kind === 'short' ? null : count(v.impressions)],
+    ['משך ממוצע', clock(v.avgViewSeconds)],
+    ['אורך הסרטון', clock(v.duration)],
+  ].filter(([, val]) => val !== null);
+  if (!rows.length) return null;
+  return h('details', {class: 'more'},
+    h('summary', {}, 'פרטים נוספים'),
+    h('dl', {}, rows.map(([k, val]) => h('div', {}, h('dt', {}, k), h('dd', {}, ltr(val, 'n'))))));
+}
+function videoRow(v, withLabels, labels) {
+  const pic = v.thumb
+    ? thumbImg(v)
+    : (v.kind === 'long' ? h('div', {class: 'nothumb'}, 'אין תמונה') : null);
+  return h('div', {class: 'video'},
+    h('div', {class: `head${pic ? '' : ' bare'}`},
+      pic,
+      h('div', {},
+        h('a', {class: 'title', href: ytVideo(v)}, bdi(v.title)),
+        h('div', {class: 'meta'}, v.publishedAt ? `עלה ב־${shortDate(v.publishedAt)}` : ''))),
+    numsFor(v, withLabels ? labels : null),
+    moreFor(v));
+}
+
+function publishedChannel(c, i, data) {
+  const labels = NUM_LABELS('*');
+  const headerRow = h('div', {class: 'nums labels'}, labels.slice(0, 4).map((l) => h('div', {class: 'num'}, h('div', {class: 'l'}, l))));
+  return h('div', {style: channelVars(i)},
+    h('div', {class: 'ch-name'}, h('h3', {}, bdi(c.name)), h('a', {href: ytChannel(c)}, 'מקור: YouTube'),
+      h('span', {class: 'ch-through'}, c.statsThrough ? `צפיות: עכשיו. כל השאר: נכון ל־${shortDate(c.statsThrough)}` : 'צפיות: עכשיו. כל השאר עוד לא הגיע מיוטיוב')),
+    h('div', {class: 'group-title'}, 'פרקים', h('span', {class: 'muted n small'}, c.long.length)),
+    c.long.length ? c.long.map((v) => videoRow(v, true, labels)) : h('p', {class: 'muted small'}, 'עוד לא עלו פרקים.'),
+    h('div', {class: 'group-title'}, 'שורטים', h('span', {class: 'muted n small'}, c.shorts.length)),
+    c.shorts.length ? [headerRow, c.shorts.map((v) => videoRow(v, false, labels))] : h('p', {class: 'muted small'}, 'עוד לא עלו שורטים.'));
+}
+
+function publishedFoot(data) {
+  const ranges = data.channels.filter((c) => c.reach && c.reach.dayCount > 0);
+  const waiting = data.channels.filter((c) => c.reach && c.reach.dayCount === 0);
+  return h('div', {class: 'foot'},
+    h('p', {}, 'המספרים מ־YouTube, מאז הפרסום של כל סרטון. "—" אומר שיוטיוב עוד לא מסרה את הנתון, בדרך כלל כי הסרטון עלה בימים האחרונים. "מעט נתונים": פחות מ־100 צפיות, אז אחוז ההקלקות עוד לא אומר הרבה.'),
+    h('p', {}, '* חשיפות ואחוז הקלקות: לא מספר ש־YouTube מציגה. סיכום שלנו מהדוחות היומיים של YouTube, שמתחילים מהיום הראשון שיוטיוב מסרה, ולכן הוא שונה מהמספר הכולל ב־Studio.',
+      ranges.map((c) => h('span', {}, ' ', bdi(c.name), c.reach.firstDay === c.reach.lastDay ? `: רק ${shortDate(c.reach.firstDay)}.` : `: ${shortDate(c.reach.firstDay)} עד ${shortDate(c.reach.lastDay)}.`))),
+    waiting.length ? h('p', {}, 'דוחות החשיפות עוד לא הגיעו: ', waiting.map((c, i) => h('span', {}, i ? ', ' : '', bdi(c.name))), '. יוטיוב מכינה אותם עד 48 שעות אחרי החיבור.') : null);
+}
+
+function publishedBlock(data) {
+  return h('section', {},
+    h('h2', {}, 'מה עלה'),
+    h('div', {class: 'channels', style: 'padding-block-start:14px'}, data.channels.map((c, i) => publishedChannel(c, i, data))),
+    publishedFoot(data));
+}
+
+function footer(data) {
+  return h('footer', {},
+    h('p', {}, 'הנתונים כאן מוצפנים, ונפתחים רק עם הקישור המלא שלך. לכן לא כדאי להעביר אותו הלאה. הכלי קורא מ־YouTube נתונים של הערוצים שאישרת, לקריאה בלבד, דרך הממשק הרשמי (YouTube API Services). ההרשאה והנתונים נשמרים מוצפנים ב־GitHub, ועותק במחשב שלך. הם לא עוברים לאף אחד אחר, והדף לא משתמש בעוגיות ולא בפרסום. שימוש בדף כפוף לתנאים של YouTube. אפשר לבטל את ההרשאה בכל רגע בדף ההרשאות של Google, ואז הנתונים של אותו ערוץ נמחקים תוך 30 יום. שאלות על הדף: בצ\'אט המנהל.'),
+    h('nav', {},
+      h('a', {href: 'https://www.youtube.com/t/terms'}, 'תנאי השימוש של YouTube'),
+      h('a', {href: 'https://policies.google.com/privacy'}, 'מדיניות הפרטיות של Google'),
+      h('a', {href: 'https://security.google.com/settings/security/permissions'}, 'ביטול הרשאות'),
+      h('a', {href: '../privacy.html'}, 'מדיניות הפרטיות של הדף')));
+}
+
+function render(data) {
+  const app = document.getElementById('app');
+  app.replaceChildren(...[
+    topBlock(data),
+    data.notice ? h('div', {class: 'notice'}, data.notice) : null,
+    alertsBlock(data),
+    channelTiles(data),
+    upcomingBlock(data),
+    prepBlock(data),
+    publishedBlock(data),
+    footer(data),
+  ].filter(Boolean));
+}
+
+const FAILURES = {
+  nokey: ['חסר חלק מהקישור. ', 'צריך לפתוח את הקישור המלא, זה שיש בו # ומפתח ארוך בסופו. אם הוא אבד, אפשר לבקש אותו בצ\'אט המנהל.'],
+  badkey: ['הקישור לא פותח את הנתונים. ', 'כנראה שהמפתח בסופו נקטע או הוחלף. אפשר לבקש קישור מעודכן בצ\'אט המנהל.'],
+  load: ['הנתונים לא נטענו. ', 'כדאי לרענן את הדף. אם זה חוזר, כדאי לכתוב על זה בצ\'אט המנהל.'],
+};
+function showFailure(err) {
+  const [title, text] = FAILURES[err.message] || FAILURES.load;
+  document.getElementById('app').replaceChildren(h('div', {class: 'alert', role: 'alert'}, h('strong', {}, title), text));
+}
+
+const fromBase64 = (text) => Uint8Array.from(atob(text), (c) => c.charCodeAt(0));
+// The key sits after the # in the link. Browsers don't send that part to any server.
+function keyFromLink() {
+  const found = /^#k=([A-Za-z0-9_-]{43})$/.exec(location.hash);
+  return found ? fromBase64(`${found[1].replace(/-/g, '+').replace(/_/g, '/')}=`) : null;
+}
+
+async function readBoard() {
+  const raw = keyFromLink();
+  if (!raw) throw new Error('nokey');
+  const res = await fetch('data.enc.json', {cache: 'no-store'});
+  if (!res.ok) throw new Error('load');
+  const box = await res.json();
+  const key = await crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['decrypt']);
+  const plain = await crypto.subtle.decrypt({name: 'AES-GCM', iv: fromBase64(box.iv)}, key, fromBase64(box.ct)).catch(() => { throw new Error('badkey'); });
+  return JSON.parse(new TextDecoder().decode(plain));
+}
+
+let loadedAt = 0;
+async function load() {
+  render(await readBoard());
+  loadedAt = Date.now();
+}
+load().catch(showFailure);
+// A page left open in a phone's browser shouldn't show an old hour. If this read fails, what's on screen stays.
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && Date.now() - loadedAt > 5 * 60000) load().catch(() => {});
+});
+</script>
+</body>
+</html>

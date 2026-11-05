@@ -1,0 +1,54 @@
+name: Refresh board
+
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  actions: write
+
+concurrency:
+  group: board
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      # The logs of a public repository are public, so this step prints only counts. See cloud.mjs.
+      - name: Read the channels and seal the result
+        id: refresh
+        env:
+          BOARD_KEY: ${{ secrets.BOARD_KEY }}
+          BOARD_SECRETS: ${{ secrets.BOARD_SECRETS }}
+          PAGES_URL: https://yardengabso1-afk.github.io/channels-board/board
+        run: node tools/dashboard/cloud.mjs
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: _site
+      - id: deploy
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+      # GitHub turns a schedule off after 60 days with no activity in a public repository.
+      - name: Keep the schedule on
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/refresh.yml/enable" --silent
+      # The page already shows its own alert. A failed run also makes GitHub email the owner.
+      - name: Fail if a channel couldn't be read
+        if: steps.refresh.outputs.failed != '0'
+        run: exit 1
