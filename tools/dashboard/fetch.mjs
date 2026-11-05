@@ -211,7 +211,8 @@ export function summarizeReach(state) {
   for (const [id, t] of perVideo) {
     result.set(id, {impressions: t.impressions, ctr: t.impressions > 0 ? (t.weighted / t.impressions) * scale : null});
   }
-  const names = Object.keys(days).sort();
+  // YouTube also sends empty reports for the weeks before a channel had videos. Those aren't days with data.
+  const names = Object.keys(days).filter((name) => Object.keys(days[name].rows).length > 0).sort();
   return {perVideo: result, firstDay: names[0]?.slice(0, 10) ?? null, lastDay: names.at(-1)?.slice(0, 10) ?? null, dayCount: names.length};
 }
 
