@@ -241,7 +241,7 @@ function ago(iso) {
 
 function topBlock(data) {
   const updated = h('div', {class: 'updated'}, `עודכן ${ago(data.generatedAt)}`,
-    h('span', {class: 'sub'}, `${stamp(data.generatedAt)}. מתעדכן בערך כל שעה.`));
+    h('span', {class: 'sub'}, stamp(data.generatedAt)));
   return h('div', {class: 'top'},
     h('div', {}, h('h1', {}, 'לוח הערוצים'), h('a', {class: 'statuslink small', href: STATUS_PAGE}, 'מה מחכה לך: דף הסטטוס')),
     updated);
