@@ -194,26 +194,20 @@ export function ctrScale(days) {
   return 100;
 }
 
-// YouTube's report is per day. Lifetime figures are our own sum over the days we hold, so the page marks them as ours.
-export function summarizeReach(state) {
+// YouTube's report is per day, so each video shows its latest day exactly as YouTube gave it, with the date.
+// Adding days up would be a derived metric, which Developer Policies III.E.4.h forbids. Fraction to percent is only a unit.
+export function latestReach(state) {
   const days = state.days ?? {};
   const scale = ctrScale(days);
-  const perVideo = new Map();
-  for (const day of Object.values(days)) {
-    for (const [id, r] of Object.entries(day.rows)) {
-      const t = perVideo.get(id) ?? {impressions: 0, weighted: 0};
-      t.impressions += r.impressions;
-      t.weighted += r.impressions * r.ctr;
-      perVideo.set(id, t);
-    }
-  }
-  const result = new Map();
-  for (const [id, t] of perVideo) {
-    result.set(id, {impressions: t.impressions, ctr: t.impressions > 0 ? (t.weighted / t.impressions) * scale : null});
-  }
   // YouTube also sends empty reports for the weeks before a channel had videos. Those aren't days with data.
   const names = Object.keys(days).filter((name) => Object.keys(days[name].rows).length > 0).sort();
-  return {perVideo: result, firstDay: names[0]?.slice(0, 10) ?? null, lastDay: names.at(-1)?.slice(0, 10) ?? null, dayCount: names.length};
+  const perVideo = new Map();
+  for (const name of names) {
+    for (const [id, r] of Object.entries(days[name].rows)) {
+      perVideo.set(id, {impressions: r.impressions, ctr: r.impressions > 0 ? r.ctr * scale : null, day: name.slice(0, 10)});
+    }
+  }
+  return {perVideo, lastDay: names.at(-1)?.slice(0, 10) ?? null, dayCount: names.length};
 }
 
 // ---- Turning API answers into what the page shows ----
@@ -255,6 +249,7 @@ export function buildChannel({channel, videos, stats, reach, totals, now, warnin
       avgViewSeconds: num(s?.averageViewDuration),
       impressions: r?.impressions ?? null,
       ctr: r?.ctr ?? null,
+      reachDay: r?.day ?? null,
     };
     (kind === 'short' ? shorts : long).push(item);
   }
@@ -274,11 +269,8 @@ export function buildChannel({channel, videos, stats, reach, totals, now, warnin
     error: null,
     lastOk: new Date(now).toISOString(),
     subscribers: channel.statistics?.hiddenSubscriberCount ? null : num(channel.statistics?.subscriberCount),
-    // Our own sum, labelled as one on the page. YouTube's channel counter lags: on 5.11.2026 it read 458
-    // while the live counts of the channel's videos added up to 637, and the page lists those videos right below.
-    viewsNow: [...long, ...shorts].reduce((sum, v) => sum + (v.views ?? 0), 0),
     ...totals,
-    reach: {firstDay: reach.firstDay, lastDay: reach.lastDay, dayCount: reach.dayCount},
+    reach: {lastDay: reach.lastDay, dayCount: reach.dayCount},
     warnings: out,
     long,
     shorts,
@@ -312,7 +304,7 @@ export async function fetchOne({http, client, tokenRecord, paths, now}) {
     if (err instanceof ReconnectError) throw err;
     reachWarnings.push(`דוחות החשיפות לא נקראו הפעם (${err.message}).`);
   }
-  return buildChannel({channel, videos, stats, reach: summarizeReach(reachState), totals, now, warnings: [...warnings, ...reachWarnings]});
+  return buildChannel({channel, videos, stats, reach: latestReach(reachState), totals, now, warnings: [...warnings, ...reachWarnings]});
 }
 
 // ---- Thumbnails ----
@@ -429,8 +421,8 @@ export function keepLastGood({tokenRecord, prev, reconnect, err, now}) {
       status,
       error: tooOld ? `${message} המספרים הישנים נמחקו אחרי ${PURGE_AFTER_DAYS} יום, לפי כללי יוטיוב.` : message,
       lastOk: null,
-      subscribers: null, viewsNow: null, engagedViews: null, views: null, hours: null, statsThrough: null,
-      reach: {firstDay: null, lastDay: null, dayCount: 0},
+      subscribers: null, engagedViews: null, views: null, hours: null, statsThrough: null,
+      reach: {lastDay: null, dayCount: 0},
       warnings: [], long: [], shorts: [], scheduled: [],
     };
   }

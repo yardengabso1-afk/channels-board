@@ -107,10 +107,11 @@ h2 { font-size: 18px; font-weight: 700; line-height: 1.3; padding-block-end: 6px
 .ch-name h3 { font-size: 19px; font-weight: 700; }
 .ch-name a { font-size: 14px; }
 /* Two groups, because the two sets of numbers are from different moments: live now, and days behind. */
-.tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding-block: 12px 6px; }
+.tiles { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 12px; padding-block: 12px 6px; }
 .tgroup + .tgroup { border-inline-start: 1px solid var(--rule); padding-inline-start: 12px; }
 .tgroup .cap { font-size: 13px; font-weight: 600; color: var(--muted); padding-block-end: 4px; }
 .tgroup .row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.tgroup .row.one { grid-template-columns: minmax(0, 1fr); }
 .tile .v { font-family: var(--font-num); font-weight: 600; font-size: 28px; line-height: 1.15; }
 .tile .l { font-size: 14px; color: var(--muted); line-height: 1.3; }
 .tile.first .v { color: var(--ch); }
@@ -157,6 +158,7 @@ details.rest > summary { padding-block: 10px; font-weight: 600; min-height: 44px
 .num.live .v { color: var(--ch); }
 .ch-through { font-size: 14px; color: var(--muted); }
 .few { display: inline-block; font-size: 12px; line-height: 1.3; color: var(--note-ink); background: var(--note-bg); padding: 0 4px; margin-block-start: 2px; }
+.ofday { display: block; font-size: 12px; line-height: 1.3; color: var(--muted); }
 .nums.labels { padding-block: 8px 6px; border-block-end: 1px solid var(--rule); }
 details.more { font-size: 14px; }
 details.more > summary { display: inline-block; min-height: 24px; }
@@ -177,7 +179,7 @@ footer nav { display: flex; flex-wrap: wrap; gap: 4px 16px; }
 const STATUS_PAGE = 'https://claude.ai/artifact/KkWyxr5fmKXDjU3SMCkCYU';
 const TZ = 'Asia/Jerusalem';
 const STALE_HOURS = 4; // The refresh runs about once an hour and GitHub can be late, so 4 hours means runs were missed.
-const FEW_VIEWS = 100;
+const FEW_IMPRESSIONS = 100;
 
 // Values from the data file only ever go in as text, never as HTML.
 function h(tag, attrs, ...children) {
@@ -269,9 +271,8 @@ function channelTiles(data) {
     h('div', {class: 'tiles'},
       h('div', {class: 'tgroup'},
         h('div', {class: 'cap'}, 'עכשיו'),
-        h('div', {class: 'row'},
-          tile('סכום צפיות', count(c.viewsNow), true),
-          tile('מנויים', count(c.subscribers)))),
+        h('div', {class: 'row one'},
+          tile('מנויים', count(c.subscribers), true))),
       h('div', {class: 'tgroup'},
         h('div', {class: 'cap'}, c.statsThrough ? `נכון ל־${shortDate(c.statsThrough)}` : 'עוד לא הגיע מיוטיוב'),
         h('div', {class: 'row'},
@@ -279,7 +280,7 @@ function channelTiles(data) {
           tile('שעות צפייה', one(c.hours))))),
     (c.warnings || []).map((w) => h('p', {class: 'ch-warn'}, w))));
   const note = h('div', {class: 'foot'},
-      h('p', {}, h('strong', {}, 'צפיות: '), 'כל פעם שמישהו התחיל לנגן. זה המספר שמופיע ביוטיוב מתחת לסרטון. בראש כל ערוץ זה סכום של כל הסרטונים שלו, חישוב שלנו.'),
+      h('p', {}, h('strong', {}, 'צפיות: '), 'כל פעם שמישהו התחיל לנגן. זה המספר שמופיע ביוטיוב מתחת לסרטון, והוא מופיע כאן ליד כל סרטון.'),
       h('p', {}, h('strong', {}, 'צפיות פעילות: '), 'רק מי שנשאר אחרי השניות הראשונות, ולכן הן תמיד פחות. זה המספר שמעיד על צופים אמיתיים.'),
       h('p', {}, 'יוטיוב מוסרת צפיות פעילות, שעות ואחוזים באיחור של כ־3 ימים, ולכן ב־Studio הם יכולים להיות גבוהים יותר באותו רגע.'));
   return h('section', {}, h('div', {class: 'channels'}, blocks), note);
@@ -363,7 +364,7 @@ function prepBlock(data) {
     h('p', {class: 'foot'}, 'מהרישום שלנו, לא מיוטיוב.'));
 }
 
-const NUM_LABELS = (mark) => ['צפיות', 'צפיות פעילות', 'שעות', 'אחוז נצפה', `אחוז הקלקות${mark}`];
+const NUM_LABELS = (mark) => ['צפיות', 'צפיות פעילות', 'שעות', 'אחוז נצפה', `הקלקות${mark}`];
 
 function numCell(label, value, extra, live) {
   return h('div', {class: `num${live ? ' live' : ''}`},
@@ -372,16 +373,19 @@ function numCell(label, value, extra, live) {
     extra || null);
 }
 function numsFor(v, labels) {
-  const few = v.ctr !== null && v.ctr !== undefined && v.views !== null && v.views !== undefined && v.views < FEW_VIEWS
-    ? h('span', {class: 'few'}, 'מעט נתונים') : null;
+  const hasDay = v.ctr !== null && v.ctr !== undefined && v.reachDay;
+  const extra = hasDay ? [
+    h('span', {class: 'ofday'}, `ב־${shortDate(v.reachDay)}`),
+    v.impressions < FEW_IMPRESSIONS ? h('span', {class: 'few'}, 'מעט נתונים') : null,
+  ] : null;
   const values = [count(v.views), count(v.engagedViews), one(v.hours), pct(v.avgViewPct)];
   // Most Shorts are seen in the feed with no thumbnail to click, so a click-through figure means nothing for them.
   if (v.kind !== 'short') values.push(pct(v.ctr));
-  return h('div', {class: 'nums'}, values.map((val, i) => numCell(labels ? labels[i] : null, val, i === 4 ? few : null, i === 0)));
+  return h('div', {class: 'nums'}, values.map((val, i) => numCell(labels ? labels[i] : null, val, i === 4 ? extra : null, i === 0)));
 }
 function moreFor(v) {
   const rows = [
-    ['חשיפות*', v.kind === 'short' ? null : count(v.impressions)],
+    [v.reachDay ? `חשיפות ב־${shortDate(v.reachDay)}*` : 'חשיפות*', v.kind === 'short' ? null : count(v.impressions)],
     ['משך ממוצע', clock(v.avgViewSeconds)],
     ['אורך הסרטון', clock(v.duration)],
   ].filter(([, val]) => val !== null);
@@ -409,7 +413,7 @@ function publishedChannel(c, i, data) {
   const headerRow = h('div', {class: 'nums labels'}, labels.slice(0, 4).map((l) => h('div', {class: 'num'}, h('div', {class: 'l'}, l))));
   return h('div', {style: channelVars(i)},
     h('div', {class: 'ch-name'}, h('h3', {}, bdi(c.name)), h('a', {href: ytChannel(c)}, 'מקור: YouTube'),
-      h('span', {class: 'ch-through'}, c.statsThrough ? `צפיות: עכשיו. כל השאר: נכון ל־${shortDate(c.statsThrough)}` : 'צפיות: עכשיו. כל השאר עוד לא הגיע מיוטיוב')),
+      h('span', {class: 'ch-through'}, c.statsThrough ? `צפיות: עכשיו. צפיות פעילות, שעות ואחוז נצפה: נכון ל־${shortDate(c.statsThrough)}` : 'צפיות: עכשיו. השאר עוד לא הגיע מיוטיוב')),
     h('div', {class: 'group-title'}, 'פרקים', h('span', {class: 'muted n small'}, c.long.length)),
     c.long.length ? c.long.map((v) => videoRow(v, true, labels)) : h('p', {class: 'muted small'}, 'עוד לא עלו פרקים.'),
     h('div', {class: 'group-title'}, 'שורטים', h('span', {class: 'muted n small'}, c.shorts.length)),
@@ -417,12 +421,10 @@ function publishedChannel(c, i, data) {
 }
 
 function publishedFoot(data) {
-  const ranges = data.channels.filter((c) => c.reach && c.reach.dayCount > 0);
   const waiting = data.channels.filter((c) => c.reach && c.reach.dayCount === 0);
   return h('div', {class: 'foot'},
-    h('p', {}, 'המספרים מ־YouTube, מאז הפרסום של כל סרטון. "—" אומר שיוטיוב עוד לא מסרה את הנתון, בדרך כלל כי הסרטון עלה בימים האחרונים. "מעט נתונים": פחות מ־100 צפיות, אז אחוז ההקלקות עוד לא אומר הרבה.'),
-    h('p', {}, '* חשיפות ואחוז הקלקות: לא מספר ש־YouTube מציגה. סיכום שלנו מהדוחות היומיים של YouTube, שמתחילים מהיום הראשון שיוטיוב מסרה, ולכן הוא שונה מהמספר הכולל ב־Studio.',
-      ranges.map((c) => h('span', {}, ' ', bdi(c.name), c.reach.firstDay === c.reach.lastDay ? `: רק ${shortDate(c.reach.firstDay)}.` : `: ${shortDate(c.reach.firstDay)} עד ${shortDate(c.reach.lastDay)}.`))),
+    h('p', {}, 'המספרים מ־YouTube, מאז הפרסום של כל סרטון, חוץ מהקלקות וחשיפות. "—" אומר שיוטיוב עוד לא מסרה את הנתון, בדרך כלל כי הסרטון עלה בימים האחרונים.'),
+    h('p', {}, '* הקלקות וחשיפות: של יום אחד בלבד, היום האחרון שיוטיוב מסרה על אותו סרטון, כפי שהוא הגיע. התאריך כתוב ליד. לכן הן קופצות מיום ליום ושונות מהמספר הכולל ב־Studio, ושם רואים את התמונה המלאה. "מעט נתונים": פחות מ־100 חשיפות באותו יום, אז האחוז עוד לא אומר הרבה.'),
     waiting.length ? h('p', {}, 'דוחות החשיפות עוד לא הגיעו: ', waiting.map((c, i) => h('span', {}, i ? ', ' : '', bdi(c.name))), '. יוטיוב מכינה אותם עד 48 שעות אחרי החיבור.') : null);
 }
 
